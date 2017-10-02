@@ -28,11 +28,7 @@ Chip8::SDLVideo::SDLVideo() {
 
 Chip8::SDLVideo::~SDLVideo() {}
 
-void Chip8::SDLVideo::reset() {
-  for (auto &row : m_screen)
-    for (auto &bit : row)
-      bit = false;
-}
+void Chip8::SDLVideo::reset() { clearScreen(); }
 
 void Chip8::SDLVideo::show() {}
 
@@ -61,6 +57,12 @@ void Chip8::SDLVideo::update() {
 
   SDL_BlitSurface(data, 0, surface, 0);
   SDL_UpdateRect(surface, 0, 0, 0, 0);
+}
+
+void Chip8::SDLVideo::clearScreen() {
+  for (auto &row : m_screen)
+    for (auto &bit : row)
+      bit = false;
 }
 
 bool Chip8::SDLVideo::flipSprite(uint8_t x, uint8_t y, uint8_t v) {

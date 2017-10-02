@@ -12,6 +12,8 @@
 #include <fstream>
 #include <memory>
 
+namespace {
+
 std::vector<uint8_t> LoadFile(const char *file) {
   std::ifstream f{file};
   if (!f) {
@@ -59,7 +61,7 @@ int main_loop(const char *file) {
     }
 
     if (!board->shutdown()) {
-      board->cpu()->step();
+      board->step();
     } else {
       gameover = 1;
     }
@@ -79,6 +81,7 @@ int main_loop(const char *file) {
         case SDLK_ESCAPE:
           gameover = 1;
           break;
+
         case SDLK_1:
           board->handleKey(0x1, SDL_KEYDOWN == event.type);
           break;
@@ -142,6 +145,8 @@ int main_loop(const char *file) {
     video->update();
   }
 }
+
+} // namespace
 
 int main(int argc, char **argv) {
   if (argc < 2) {

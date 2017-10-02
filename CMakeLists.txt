@@ -7,8 +7,12 @@ cmake_minimum_required(VERSION 2.8)
 #  RelWithDebInfo
 #
 # to set build type: -DCMAKE_BUILD_TYPE=...
+#TODO: Write this properly
 #set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_BUILD_TYPE "Debug")
+
+set(CHIP8_DEBUGGER_ENABLED ON CACHE BOOL "Enable integrated Chip8 debugger")
+
 
 find_package(PkgConfig)
 if(NOT PKG_CONFIG_FOUND)
@@ -24,17 +28,19 @@ else()
         message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
-
 #if SDL
 pkg_check_modules(SDL REQUIRED sdl>=1.2)
 if (SDL_FOUND)
-    LIST(APPEND INCLUDEDIRS ${SDL_INCLUDE_DIRS})
+    list(APPEND INCLUDEDIRS ${SDL_INCLUDE_DIRS})
     set(PROJECTLIBS ${PROJECTLIBS} ${SDL_LIBRARIES} )
     add_definitions(${SDL_CFLAGS} ${SDL_CFLAGS_OTHER})
 endif() # SDL_FOUND
 
-#if DEBUG
-LIST(APPEND PROJECTLIBS "readline")
+#if DEBUGGER
+#if (CHIP8_DEBUGGER_ENABLED)
+#    add_definitions(-DCHIP8_ENABLE_DEBUGGER)
+    list(APPEND PROJECTLIBS "readline")
+#endif()
 
 #find_package(Boost COMPONENTS regex)
 #if (Boost_FOUND)
@@ -53,6 +59,7 @@ include_directories(${INCLUDEDIRS})
 #Project sources
 set(SRC_LIST
     "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/instruction.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/board.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/cpu.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/memory.cpp"
@@ -66,9 +73,11 @@ set(SRC_LIST
 
 set(HEADERS_LIST
     "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Board.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Common.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Cpu.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Memory.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Video.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Instruction.h"
     )
 
 #Library

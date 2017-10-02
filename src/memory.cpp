@@ -1,11 +1,11 @@
 #include <Chip8/Memory.h>
 
 namespace Chip8 {
-class Memory;
 
 void Memory::reset() {
   std::fill(m_data.begin(), m_data.end(), 0);
   // Store font data
+  // TODO: Move to board?
   const std::vector<std::vector<uint8_t>> font_data = {
       /* 0 */ {0xF0, 0x90, 0x90, 0x90, 0xF0},
       /* 1 */ {0x20, 0x60, 0x20, 0x20, 0x70},
@@ -25,7 +25,7 @@ void Memory::reset() {
       /* F */ {0xF0, 0x80, 0xF0, 0x80, 0x80},
   };
   for (uint8_t font = 0; font < font_data.size(); ++font) {
-    size_t offset;
+    uint16_t offset;
     font_ptr(font, offset); // TODO
     for (const auto &sprite : font_data[font]) {
       write(offset++, sprite); // TODO
@@ -33,36 +33,37 @@ void Memory::reset() {
   }
 }
 
-int Memory::read(size_t offset, uint8_t &data) {
+ResultType Memory::read(uint16_t offset, uint8_t &data) {
   if (offset >= m_data.size())
-    return 0;
+    return ResultType::OutOfRange;
   data = m_data.at(offset);
-  return 1;
+  return ResultType::Ok;
 }
 
-int Memory::write(size_t offset, uint8_t data) {
+ResultType Memory::write(uint16_t offset, uint8_t data) {
   if (offset >= m_data.size())
-    return 0;
+    return ResultType::OutOfRange;
   m_data.at(offset) = data;
-  return 1;
+  return ResultType::Ok;
 }
 
-int Memory::write_bulk(size_t offset, const std::vector<uint8_t> &data) {
-  int rv = 0;
+ResultType Memory::write_bulk(uint16_t offset, const std::vector<uint8_t> &data,
+                              uint16_t &count) {
+  count = 0;
   for (auto b : data) {
-    int tmp = write(offset++, b);
-    if (0 == tmp)
-      return rv;
-    rv += tmp;
+    auto tmp = write(offset++, b);
+    CHIP8_CHECK_RESULT(tmp);
+    count += 1;
   }
-  return rv;
+  return ResultType::Ok;
 }
 
-int Memory::font_ptr(uint8_t font, size_t &offset) {
+ResultType Memory::font_ptr(uint8_t font, uint16_t &offset) {
   if (font > 0x0F) {
-    return 0;
+    return ResultType::OutOfRange;
   }
   offset = 0x050 + font * 5;
-  return 1;
+  return ResultType::Ok;
 }
-}
+
+} // namespace Chip8

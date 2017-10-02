@@ -5,445 +5,291 @@
 
 namespace Chip8 {
 
-std::string Instruction::disasm() const {
-  std::stringstream str;
-  str << std::hex << std::uppercase;
-
-  switch (type()) {
-  case 0x0: {
-    switch (opcode()) {
-    case 0x00E0:
-      str << "CLS";
-      break;
-    case 0x00EE:
-      str << "RET";
-      break;
-    default:
-      str << "[UNKNOWN]";
-      break;
-    }
-    break;
-  }
-  case 0x1:
-    str << "JP " << NNN();
-    break;
-  case 0x2:
-    str << "CALL " << NNN();
-    break;
-  case 0x3:
-    str << "SE V" << (uint16_t)X() << ", 0x" << NN();
-    break;
-  case 0x4:
-    str << "SNE V" << (uint16_t)X() << ", 0x" << NN();
-    break;
-  case 0x5:
-    str << "SE V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-    break;
-  case 0x6:
-    str << "LD V" << (uint16_t)X() << ", 0x" << NN();
-    break;
-  case 0x7:
-    str << "ADD V" << (uint16_t)X() << ", 0x" << NN();
-    break;
-  case 0x8:
-    switch (subtype1()) {
-    case 0x0:
-      str << "LD V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-      break;
-    case 0x1:
-      str << "OR V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-      break;
-    case 0x2:
-      str << "AND V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-      break;
-    case 0x3:
-      str << "XOR V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-      break;
-    case 0x4:
-      str << "ADD V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-      break;
-    case 0x5:
-      str << "SUB V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-      break;
-    case 0x6:
-      str << "SHR V" << (uint16_t)X() << "{, V" << (uint16_t)Y() << "}";
-      break;
-    case 0x7:
-      str << "SUBN V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-      break;
-    case 0xe:
-      str << "SHL V" << (uint16_t)X() << "{, V" << (uint16_t)Y() << "}";
-      break;
-    default:
-      str << "[UNKNOWN]";
-      break;
-    }
-    break;
-  case 0x9:
-    str << "SNE V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-    break;
-  case 0xa:
-    str << "LD I, 0x" << NNN();
-    break;
-  case 0xb:
-    str << "JP V0, 0x" << NNN();
-    break;
-  case 0xc:
-    str << "RND V" << (uint16_t)X() << ", 0x" << NN();
-    break;
-  case 0xd:
-    str << "DRW V" << (uint16_t)X() << ", V" << (uint16_t)Y() << ", 0x" << N();
-    break;
-  case 0xe: {
-    switch (subtype2()) {
-    case 0x9E:
-      str << "SKP V" << (uint16_t)X();
-      break;
-    case 0xA1:
-      str << "SKNP V" << (uint16_t)X();
-      break;
-    default:
-      str << "[UNKNOWN]";
-      break;
-    }
-    break;
-  }
-  case 0xf: {
-    switch (subtype2()) {
-    case 0x07:
-      str << "LD V" << (uint16_t)X() << ", DT";
-      break;
-    case 0x0A:
-      str << "LD V" << (uint16_t)X() << ", K";
-      break;
-    case 0x15:
-      str << "LD DT, V" << (uint16_t)X();
-      break;
-    case 0x18:
-      str << "LD ST, V" << (uint16_t)X();
-      break;
-    case 0x1E:
-      str << "ADD I, V" << (uint16_t)X();
-      break;
-    case 0x29:
-      str << "LD F, V" << (uint16_t)X();
-      break;
-    case 0x33:
-      str << "LD B, V" << (uint16_t)X();
-      break;
-    case 0x55:
-      str << "LD [I], V" << (uint16_t)X();
-      break;
-    case 0x65:
-      str << "LD V" << (uint16_t)X() << ", [I]";
-      break;
-    default:
-      str << "[UNKNOWN]";
-      break;
-    }
-
-    break;
-  }
-  default:
-    str << "[UNKNOWN]";
-    break;
-  }
-
-  return str.str();
-}
-
 void Cpu::reset() {
-  m_Pc = 0x200;
+  m_Pc = Chip8::ProgramStartLocation;
   m_I = 0;
   m_Sp = 0;
+  m_Dt = 0;
+  m_St = 0;
   std::fill(m_Regs.begin(), m_Regs.end(), 0);
   std::fill(m_Stack.begin(), m_Stack.end(), 0);
 }
 
-void Cpu::dump() {
-  std::printf("PC: %.4x\n", pc());
-  std::printf("SP: %.4x\n", Sp());
-  std::printf("I: %.4x", I());
-  for (size_t rId = 0; rId < 16; ++rId) {
-    if (rId % 4 == 0)
-      std::printf("\n");
-    std::printf("V%lX: %.2x %3i  ", rId, Vx(rId), Vx(rId));
+ResultType Cpu::timerStep(Board *board) {
+  decDt();
+  decSt();
+  if (St() > 0) {
+    board->startBeep();
+  } else {
+    board->stopBeep();
   }
-  std::printf("\n");
-  std::printf("Stack:\n");
-  for (size_t rId = 0; rId < 16; ++rId) {
-    if (rId % 4 == 0)
-      std::printf("\n\t");
-    std::printf("%.4x  ", m_Stack[rId]);
-  }
-  std::printf("\n");
 }
 
-int Cpu::fetch(uint16_t addr, uint16_t &out) {
-  uint8_t top;
-  uint8_t bottom;
-  int rv = 0;
-  rv += board()->memory()->read(addr, top);
-  rv += board()->memory()->read(addr + 1, bottom);
-  if (rv != 2) {
-    return 0;
-  }
-  out = (top << 8) | bottom;
-  return 1;
+void Cpu::invalid_opcode(const Instruction &instr, Board *board) {
+  std::fprintf(stderr, "Aborting, invalid opcode or not implemented\n"
+                       "Fault code: %s\n",
+               instr.disasm().c_str());
+  std::fprintf(stderr, "PC: %.4X\n", pc());
+  board->setBreak(true);
 }
 
-int Cpu::fetch(uint16_t &out) { return fetch(pc(), out); }
+Cpu::Cpu() { reset(); }
 
-void Cpu::step() {
+ResultType Cpu::step(Board *board) {
+  ResultType rv;
   // Perform single instruction
-  uint16_t opcode;
-  fetch(opcode);
+  std::uint16_t opcode;
+  rv = board->memoryRead(pc(), opcode);
+  CHIP8_CHECK_RESULT(rv);
+
   Instruction instr(opcode);
-  // printf("\t%.3X: %.4X\t%s\n", pc(), opcode, instr.disasm().c_str());
+  printf("\t%.3X: %.4X\t%s\n", pc(), opcode, instr.disasm().c_str());
+
   switch (instr.type()) {
   case 0x0: {
-    switch (instr.opcode()) {
-    // case 0x00E0:
-    //    str << "CLS";
-    //    break;
-    case 0x00EE:
-      decSp(); // TODO: fix
-      setPc(m_Stack[Sp()]);
-      m_Stack[Sp()] = 0;
-      // board()->setBreak(true);
-      break;
+    switch (instr.code()) {
+    case 0x00E0: // CLS
+      board->clearScreen();
+      setPc(pc() + 2);
+      return ResultType::Ok;
+    case 0x00EE: // RET
+    {
+      uint16_t tmp;
+      decSp();
+      SpVal(tmp);
+      setPc(tmp);
+      SetSpVal(0);
+      return ResultType::Ok;
+    }
     default:
-      printf("Aborting, not implemented\n");
-      dump();
-      board()->setBreak(true);
-      break;
+      invalid_opcode(instr, board);
+      return ResultType::InvalidOpcode;
     }
     break;
   }
-  case 0x1:
+  case 0x1: // JP addr
     setPc(instr.NNN());
-    break;
-  case 0x2:
-    m_Stack[Sp()] = pc() + 2;
-    addSp(); // TODO: fix
+    return ResultType::Ok;
+  case 0x2: // CALL addr
+    SetSpVal(pc() + 2);
+    addSp();
     setPc(instr.NNN());
-    // board()->setBreak(true);
-    break;
-  case 0x3:
+    return ResultType::Ok;
+  case 0x3: // SE Vx, byte // Skip if Vx == byte
     if (Vx(instr.X()) == instr.NN()) {
       setPc(pc() + 2);
     }
     setPc(pc() + 2);
-    break;
-  case 0x4:
+    return ResultType::Ok;
+  case 0x4: // SE Vx, byte // Skip if Vx == byte
     if (Vx(instr.X()) != instr.NN()) {
       setPc(pc() + 2);
     }
     setPc(pc() + 2);
-    break;
-  case 0x6:
+    return ResultType::Ok;
+  case 0x5: // SE Vx, Vy, skip if Vx = Vy
+    if (Vx(instr.X()) == Vx(instr.Y())) {
+      setPc(pc() + 2);
+    }
+    setPc(pc() + 2);
+    return ResultType::Ok;
+  case 0x6: // LD Vx, byte
     setVx(instr.X(), instr.NN());
     setPc(pc() + 2);
-    break;
-  case 0x7:
+    return ResultType::Ok;
+  case 0x7: // ADD Vx, byte
     setVx(instr.X(), instr.NN() + Vx(instr.X()));
     setPc(pc() + 2);
-    break;
+    return ResultType::Ok;
   case 0x8:
     switch (instr.subtype1()) {
-    // case 0x0:
-    //    str << "LD V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-    //    break;
-    // case 0x1:
-    //    str << "OR V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-    //    break;
-    case 0x2:
+    case 0x0: // LD Vx, Vy
+      setVx(instr.X(), Vx(instr.Y()));
+      setPc(pc() + 2);
+      return ResultType::Ok;
+    case 0x1: // OR Vx, Vy
+      setVx(instr.X(), Vx(instr.X()) | Vx(instr.Y()));
+      setPc(pc() + 2);
+      invalid_opcode(instr, board);
+      return ResultType::Ok;
+    case 0x2: // AND Vx, Vy
       setVx(instr.X(), Vx(instr.X()) & Vx(instr.Y()));
       setPc(pc() + 2);
-      // str << "ADD V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-      break;
-    // case 0x3:
-    //    str << "XOR V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-    //    break;
-    case 0x4: {
-      uint16_t val = Vx(instr.X());
-      val += (uint16_t)Vx(instr.Y());
+      return ResultType::Ok;
+    case 0x3: // XOR Vx, Vy
+      setVx(instr.X(), Vx(instr.X()) ^ Vx(instr.Y()));
+      setPc(pc() + 2);
+      return ResultType::Ok;
+    case 0x4: // ADD Vx, Vy with carry
+    {
+      std::uint16_t val = Vx(instr.X());
+      val += (std::uint16_t)Vx(instr.Y());
       setVx(instr.X(), val & 0xFF);
       setVx(0xF, 0x1 & (val >> 8));
       setPc(pc() + 2);
-      // str << "ADD V" << (uint16_t)X() << ", V" << (uint16_t)Y();
-      break;
+      return ResultType::Ok;
     }
-    // case 0x5:
-    //    str << "SUB V" << (uint16_t)X() << ", V" << (uint16_t)Y();
+    // case 0x5: // SUB Vx, Vy with NOT carry?
+    //    str << "SUB V" << (std::uint16_t)X() << ", V" << (std::uint16_t)Y();
     //    break;
     // case 0x6:
-    //    str << "SHR V" << (uint16_t)X() << "{, V" << (uint16_t)Y() << "}";
+    //    str << "SHR V" << (std::uint16_t)X() << "{, V" << (std::uint16_t)Y()
+    //    << "}";
     //    break;
     // case 0x7:
-    //    str << "SUBN V" << (uint16_t)X() << ", V" << (uint16_t)Y();
+    //    str << "SUBN V" << (std::uint16_t)X() << ", V" << (std::uint16_t)Y();
     //    break;
     // case 0xe:
-    //    str << "SHL V" << (uint16_t)X() << "{, V" << (uint16_t)Y() << "}";
+    //    str << "SHL V" << (std::uint16_t)X() << "{, V" << (std::uint16_t)Y()
+    //    << "}";
     //    break;
     default:
-      printf("Aborting, subtype not implemented\n");
-      dump();
-      board()->setBreak(true);
-      break;
+      invalid_opcode(instr, board);
+      return ResultType::InvalidOpcode;
     }
     break;
-  case 0xa:
+  case 0x9: // SNE Vx, Vy, skip if Vx != Vy
+    if (Vx(instr.X()) != Vx(instr.Y())) {
+      setPc(pc() + 2);
+    }
+    setPc(pc() + 2);
+    return ResultType::Ok;
+  case 0xa: // LD I, addr
     setI(instr.NNN());
     setPc(pc() + 2);
-    break;
-  case 0xc:
-    setVx(instr.X(), rand() & instr.NN());
+    return ResultType::Ok;
+  // case 0xb: // JP V0, addr // Jump to V0 + addr
+  //  setI(instr.NNN());
+  //  setPc(Vx(0) + instr.NNN());
+  //  return ResultType::Ok;
+  case 0xc: // RND Vx, byte
+    setVx(instr.X(), random() & instr.NN());
     setPc(pc() + 2);
-    break;
-  case 0xd: {
-    I();
-    Vx(instr.X());
-    Vx(instr.Y());
+    return ResultType::Ok;
+  case 0xd: // DRW Vx, Vy, nibble
+  {
     // TODO: Collision
     bool VF = false;
+    bool res = false;
     for (uint8_t it = 0; it < instr.N(); ++it) {
       // Display n-byte sprite starting at memory location I at (Vx, Vy), set
       // VF
       // = collision.
       uint8_t value;
-      if (1 != board()->memory()->read(I() + it, value)) {
-        break;
-      }
-      VF |= board()->video()->flipSprite(Vx(instr.X()), Vx(instr.Y()) + it,
-                                         value);
+      board->memoryRead(I() + it, value);
+      board->flipSprite(Vx(instr.X()), Vx(instr.Y()) + it, value, res);
+      VF |= res;
     }
     setVx(0xF, VF ? 1 : 0);
     setPc(pc() + 2);
-    // printf("Drawing instruction\n");
-    // dump();
-    // board()->setBreak(true);
-    break;
+    return ResultType::Ok;
   }
   case 0xe: {
     switch (instr.subtype2()) {
-    case 0x9E: {
-      if (board()->isKeyDown(Vx(instr.X()))) {
+    case 0x9E: // SKP Vx, skip next instr if Vx PRESSED
+    {
+      if (board->isKeyDown(Vx(instr.X()))) {
         setPc(pc() + 2);
-        // std::fprintf(stderr, "SKP: KEY V%X %X PRESSED\n", instr.X(),
-        // Vx(instr.X()));
-      } else {
-        // skipping as not pressed
-        // std::fprintf(stderr, "SKP: KEY V%X %X NOT PRESSED\n", instr.X(),
-        // Vx(instr.X()));
       }
       setPc(pc() + 2);
-      break;
+      return ResultType::Ok;
     }
-    case 0xA1:
-      if (board()->isKeyDown(Vx(instr.X()))) {
-        // skipping as pressed
-        // std::fprintf(stderr, "SKNP: KEY V%X %X PRESSED\n", instr.X(),
-        // Vx(instr.X()));
-      } else {
+    case 0xA1: // SKNP Vx, skip next instr if Vx NOT PRESSED
+      if (!board->isKeyDown(Vx(instr.X()))) {
         setPc(pc() + 2);
-        // std::fprintf(stderr, "SKNP: KEY V%X %X NOT PRESSED\n", instr.X(),
-        // Vx(instr.X()));
       }
-      // std::fprintf(stderr, "SKNP: KEY V%X %X NOT PRESSED\n", instr.X(),
-      // Vx(instr.X()));
-      // str << "SKNP V" << (uint16_t)X();
       setPc(pc() + 2);
-      break;
+      return ResultType::Ok;
     default:
-      printf("Aborting, not implemented\n");
-      dump();
-      board()->setBreak(true);
-      break;
+      invalid_opcode(instr, board);
+      return ResultType::InvalidOpcode;
     }
     break;
   }
   case 0xf: {
     switch (instr.subtype2()) {
-    case 0x18:
-      std::cerr << "LD ST, V" << (uint16_t)instr.X() << std::endl;
+    case 0x07: // LD Vx, DT
+      setVx(instr.X(), Dt());
       setPc(pc() + 2);
-      break;
-    case 0x29: {
-      // TODO: IMPL
+      return ResultType::Ok;
+    // case 0x0A: // LD Vx, K
+    //  // TODO: Wait for key press and resume
+    case 0x15: // LD DT, Vx
+      SetDt(Vx(instr.X()));
+      setPc(pc() + 2);
+      return ResultType::Ok;
+    case 0x18: // LD ST, Vx
+      SetSt(Vx(instr.X()));
+      setPc(pc() + 2);
+      return ResultType::Ok;
+    case 0x1E: // ADD I, Vx
+      setI(I() + Vx(instr.X()));
+      setPc(pc() + 2);
+      return ResultType::Ok;
+    case 0x29: // LD F, Vx
+    {
       // Set I = location of sprite for digit Vx.
-      size_t offset;
-      board()->memory()->font_ptr(Vx(instr.X()), offset); // TODO:
-      fprintf(stderr, "LOAD FONT: %X %4X\n", Vx(instr.X()), offset);
+      std::uint16_t offset;
+      board->fontPtr(Vx(instr.X()), offset);
       setI(offset);
       setPc(pc() + 2);
-      // dump();
-      // board()->setBreak(true);
-      break;
+      return ResultType::Ok;
     }
-    case 0x33: {
+    case 0x33: // LD B, Vx
+    {
       // 1) split [Vx] into B0, B1, B2
       // Store mem[i] <- B0, mem[i+1] <- B1...
-      // TODO: IMPL
-      uint8_t value = Vx(instr.X());
-      fprintf(stderr, "INTO BCD: %X %d\n", value, value);
-      board()->memory()->write_bulk(
-          I(), {
-                   (value / 100) % 10, (value / 10) % 10, (value) % 10,
-               });
-      // TODO: CHECK
+      std::uint8_t value = Vx(instr.X());
+      board->memoryWrite(I() + 0,
+                         static_cast<std::uint8_t>((value / 100) % 10));
+      board->memoryWrite(I() + 1, static_cast<std::uint8_t>((value / 10) % 10));
+      board->memoryWrite(I() + 2, static_cast<std::uint8_t>((value) % 10));
+      // board->memory()->write_bulk(
+      //    I(), {
+      //             static_cast<std::uint8_t>((value / 100) % 10),
+      //                static_cast<std::uint8_t>((value / 10) % 10),
+      //                static_cast<std::uint8_t>((value) % 10),
+      //         });
       setPc(pc() + 2);
-      // printf("%i\n", value);
-      // dump();
-      // board()->setBreak(true);
-      break;
+      return ResultType::Ok;
     }
     case 0x55: {
       for (uint8_t it = 0; it <= instr.X(); ++it) {
         uint8_t value = Vx(it);
-        if (1 != board()->memory()->write(I(), value)) {
-          // TODO: error
-          break;
-        }
+        board->memoryWrite(I(), value);
         setI(I() + 1);
       }
       setPc(pc() + 2);
-      // printf("Check stuff\n");
-      // dump();
-      // board()->setBreak(true);
-      break;
+      return ResultType::Ok;
     }
     case 0x65: {
       for (uint8_t it = 0; it <= instr.X(); ++it) {
         uint8_t value;
-        if (1 != board()->memory()->read(I(), value)) {
-          // TODO: error
-          break;
-        }
+        board->memoryRead(I(), value);
         setVx(it, value);
         setI(I() + 1);
       }
       setPc(pc() + 2);
-      // printf("Check stuff\n");
-      // TODO: IMPL
-      // dump();
-      // board()->setBreak(true);
-      break;
+      return ResultType::Ok;
     }
     default:
-      printf("Aborting, subtype not implemented\n");
-      dump();
-      board()->setBreak(true);
-      break;
+      invalid_opcode(instr, board);
+      return ResultType::InvalidOpcode;
     }
 
     break;
   }
   default:
-    printf("Aborting, not implemented\n");
-    dump();
-    board()->setBreak(true);
-    break;
+    invalid_opcode(instr, board);
+    return ResultType::InvalidOpcode;
   }
+  invalid_opcode(instr, board);
+  return ResultType::InvalidOpcode;
 }
+
+uint8_t Cpu::random() {
+  // TODO: Better random
+  return rand() % 255;
 }
+
+} // namespace Chip8

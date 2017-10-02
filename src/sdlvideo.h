@@ -20,8 +20,10 @@ public:
   virtual void reset();
   virtual void show();
   virtual void update();
+  virtual void clearScreen();
   virtual bool flipSprite(uint8_t x, uint8_t y, uint8_t v);
   virtual bool flipBit(uint8_t x, uint8_t y, bool v);
   virtual void dump();
 };
-}
+
+} // namespace Chip8

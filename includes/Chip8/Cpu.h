@@ -2,77 +2,107 @@
 
 namespace Chip8 {
 class Cpu;
-}
+} // namespace Chip8
 
-#include "Board.h"
+#include <Chip8/Board.h>
+#include <Chip8/Common.h>
+#include <Chip8/Instruction.h>
 #include <array>
 
 namespace Chip8 {
 
-class Instruction {
-  uint16_t m_opcode;
-
-public:
-  Instruction(uint16_t opcode) : m_opcode(opcode) {}
-  uint16_t opcode() const { return m_opcode; }
-  uint8_t X() const { return 0xF & (opcode() >> 8); }
-  uint8_t Y() const { return 0xF & (opcode() >> 4); }
-  uint16_t NNN() const { return 0xFFF & opcode(); }
-  uint16_t NN() const { return 0xFF & opcode(); }
-  uint16_t N() const { return 0xF & opcode(); }
-
-  // type extracts Txxx
-  uint8_t type() const { return 0xF & (opcode() >> 12); }
-  // subtype1 extracts xxxT
-  uint8_t subtype1() const { return 0xF & opcode(); }
-  // subtype2 extracts xxTT
-  uint8_t subtype2() const { return 0xFF & opcode(); }
-
-  std::string disasm() const;
-};
-
 class Cpu {
-  std::array<uint8_t, 0x10> m_Regs;
-  uint16_t m_Pc = 0x200;
-  uint16_t m_I = 0;
-  std::array<uint16_t, 0x10 | 0xFF> m_Stack;
-  uint8_t m_Sp = 0;
-  Board *m_board = nullptr;
+  std::array<std::uint8_t, Chip8::StdRegisterCount> m_Regs;
+  std::array<std::uint16_t, Chip8::StackSize> m_Stack;
+  std::uint16_t m_Pc;
+  std::uint16_t m_I;
+  std::uint8_t m_Sp;
+  std::uint8_t m_Dt;
+  std::uint8_t m_St;
+
+  void invalid_opcode(const Instruction &instr, Board *board);
 
 public:
-  void setBoard(Board *board) { m_board = board; }
-  Board *board() { return m_board; }
-  void step();
+  Cpu();
+
   void reset();
+  ResultType timerStep(Board *board);
+  ResultType step(Board *board);
 
-  void dump();
+  uint8_t random();
 
-  uint8_t Vx(uint8_t x) { return m_Regs[x]; }
-  int setVx(uint8_t x, uint8_t v) {
+  CHIP8_DEPRECATED std::uint8_t Vx(std::uint8_t x) { return m_Regs[x]; }
+  CHIP8_WARN_UNUSED ResultType Vx(std::uint8_t x, std::uint8_t &out) {
+    if (x >= m_Regs.size()) {
+      return ResultType::OutOfRange;
+    }
+    out = m_Regs[x];
+    return ResultType::Ok;
+  }
+  CHIP8_WARN_UNUSED ResultType setVx(std::uint8_t x, std::uint8_t v) {
+    if (x >= m_Regs.size()) {
+      return ResultType::OutOfRange;
+    }
     m_Regs[x] = v;
-    return 1;
-  } // TODO:
-  uint16_t pc() { return m_Pc; }
-  int setPc(uint16_t v) {
+    return ResultType::Ok;
+  }
+  CHIP8_WARN_UNUSED std::uint16_t pc() { return m_Pc; }
+  CHIP8_WARN_UNUSED ResultType setPc(std::uint16_t v) {
     m_Pc = v;
-    return 1;
-  } // TODO:
-  uint16_t I() { return m_I; }
-  int setI(uint16_t v) {
+    return ResultType::Ok;
+  }
+  CHIP8_WARN_UNUSED std::uint16_t I() { return m_I; }
+  CHIP8_WARN_UNUSED ResultType setI(std::uint16_t v) {
     m_I = v;
-    return 1;
-  } // TODO:
-  uint16_t Sp() { return m_Sp; }
-  int addSp() {
+    return ResultType::Ok;
+  }
+  CHIP8_DEPRECATED std::uint16_t Sp() { return m_Sp; }
+  CHIP8_WARN_UNUSED ResultType SpVal(uint8_t idx, uint16_t &out) {
+    if (Chip8::StackSize <= idx)
+      return ResultType::OutOfRange;
+    out = m_Stack[idx];
+    return ResultType::Ok;
+  }
+  CHIP8_WARN_UNUSED ResultType SpVal(uint16_t &out) { return SpVal(m_Sp, out); }
+  CHIP8_WARN_UNUSED ResultType SetSpVal(uint16_t val) {
+    if (Chip8::StackSize <= m_Sp)
+      return ResultType::OutOfRange;
+    m_Stack[m_Sp] = val;
+    return ResultType::Ok;
+  }
+  CHIP8_WARN_UNUSED ResultType addSp() {
+    if (Chip8::StackSize <= m_Sp + 1)
+      return ResultType::OutOfRange;
     m_Sp++;
-    return 1;
-  } // TODO:
-  int decSp() {
+    return ResultType::Ok;
+  }
+  CHIP8_WARN_UNUSED ResultType decSp() {
+    if (0 == m_Sp)
+      return ResultType::OutOfRange;
     m_Sp--;
-    return 1;
-  } // TODO:
+    return ResultType::Ok;
+  }
 
-  int fetch(uint16_t addr, uint16_t &out);
-  int fetch(uint16_t &out);
+  CHIP8_WARN_UNUSED ResultType SetDt(uint8_t val) {
+    m_Dt = val;
+    return ResultType::Ok;
+  }
+  CHIP8_WARN_UNUSED std::uint8_t Dt() { return m_Dt; }
+  void decDt() {
+    if (0 == m_Dt)
+      return;
+    m_Dt;
+  }
+
+  CHIP8_WARN_UNUSED ResultType SetSt(uint8_t val) {
+    m_St = val;
+    return ResultType::Ok;
+  }
+  CHIP8_WARN_UNUSED std::uint8_t St() { return m_St; }
+  void decSt() {
+    if (0 == m_St)
+      return;
+    m_St;
+  }
 };
-}
+} // namespace Chip8

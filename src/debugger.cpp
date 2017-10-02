@@ -8,7 +8,7 @@ Debugger::Debugger(const std::shared_ptr<Board> &board) : m_board(board) {}
 
 Board *Debugger::board() { return m_board.get(); }
 
-void Debugger::dumpMemory(uint16_t offset, size_t size) {
+void Debugger::dumpMemory(std::uint16_t offset, size_t size) {
   size_t dump_line = size / 16;
   // Display 16 bytes of memory
   uint8_t byte = 0;
@@ -22,7 +22,7 @@ void Debugger::dumpMemory(uint16_t offset, size_t size) {
       if (dump_size % 2 == 0) {
         std::printf("  ");
       }
-      if (1 == board()->memory()->read(offset++, byte)) {
+      if (ResultType::Ok == board()->memoryRead(offset++, byte)) {
         std::printf("%.2x ", byte);
       }
     }
@@ -31,19 +31,41 @@ void Debugger::dumpMemory(uint16_t offset, size_t size) {
   std::printf("\n");
 }
 
-void Debugger::dumpDisasm(uint16_t offset, size_t count) {
+void Debugger::dumpDisasm(std::uint16_t offset, size_t count) {
   for (; count > 0; --count, offset += 2) {
-    uint16_t opcode;
-    if (1 == board()->cpu()->fetch(offset, opcode)) {
+    std::uint16_t opcode;
+    if (ResultType::Ok == board()->memoryRead(offset, opcode)) {
       Instruction instr(opcode);
       std::printf("0x%.3X\t%.4X\t%s\n", offset, opcode, instr.disasm().c_str());
     }
   }
 }
 
-void Debugger::dumpSpriteLine(uint16_t offset) {
+void Debugger::dumpCpu() {
+  std::printf("PC: %.4x\n", board()->cpu()->pc());
+  std::printf("SP: %.4x\n", board()->cpu()->Sp());
+  std::printf("I: %.4x", board()->cpu()->I());
+  for (size_t rId = 0; rId < 16; ++rId) {
+    if (rId % 4 == 0)
+      std::printf("\n");
+    std::printf("V%lX: %.2x %3i  ", rId, board()->cpu()->Vx(rId),
+                board()->cpu()->Vx(rId));
+  }
+  std::printf("\n");
+  std::printf("Stack:\n");
+  for (size_t rId = 0; rId < 16; ++rId) {
+    uint16_t out16;
+    if (rId % 4 == 0)
+      std::printf("\n\t");
+    board()->cpu()->SpVal(rId, out16);
+    std::printf("%.4x  ", out16);
+  }
+  std::printf("\n");
+}
+
+void Debugger::dumpSpriteLine(std::uint16_t offset) {
   uint8_t sprite;
-  if (1 != board()->memory()->read(offset, sprite))
+  if (ResultType::Ok != board()->memoryRead(offset, sprite))
     return;
   std::string line;
   line.resize(8);
@@ -59,7 +81,13 @@ void Debugger::debugger_loop() {
   while (true) {
     char *line = readline("> ");
     if (nullptr == line) {
-      continue;
+      std::fprintf(stderr, "single cpu step\n");
+      return;
+    }
+
+    if (0 == strlen(line)) {
+      std::fprintf(stderr, "single cpu step\n");
+      return;
     }
 
     line = strtok(line, " ");
@@ -74,7 +102,7 @@ void Debugger::debugger_loop() {
       board()->setBreak(false);
       return;
     } else if (0 == strcmp(line, "cpu")) {
-      board()->cpu()->dump();
+      dumpCpu();
     } else if (0 == strcmp(line, "s")) {
       std::fprintf(stderr, "single cpu step\n");
       return;
@@ -132,4 +160,5 @@ void Debugger::debugger_loop() {
     }
   }
 }
-}
+
+} // namespace Chip8

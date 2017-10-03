@@ -10,9 +10,20 @@
 #include <csignal>
 #include <cstdio>
 #include <fstream>
+#include <map>
 #include <memory>
 
 namespace {
+
+const std::map<SDLKey, std::uint16_t> kKeyMap = {
+    {SDLK_1, 0x1}, {SDLK_2, 0x2}, {SDLK_3, 0x3}, {SDLK_4, 0xC},
+
+    {SDLK_q, 0x4}, {SDLK_w, 0x5}, {SDLK_e, 0x6}, {SDLK_r, 0xD},
+
+    {SDLK_a, 0x7}, {SDLK_s, 0x8}, {SDLK_d, 0x9}, {SDLK_f, 0xE},
+
+    {SDLK_z, 0xA}, {SDLK_x, 0x0}, {SDLK_c, 0xB}, {SDLK_v, 0xF},
+};
 
 std::vector<uint8_t> LoadFile(const char *file) {
   std::ifstream f{file};
@@ -47,10 +58,52 @@ int main_loop(const char *file) {
   // Initialize debugger
   auto debugger = std::make_shared<Chip8::Debugger>(board);
 
+  Uint32 last_timer_tick = SDL_GetTicks();
+  Uint32 last_gpu_tick = last_timer_tick;
+
   /* message pump */
-  int gameover = 0;
+  int should_quit = 0;
   SDL_Event event;
-  while (!gameover) {
+  while (!should_quit) {
+    /* look for an event */
+    if (SDL_PollEvent(&event)) {
+      switch (event.type) {
+      /* close button clicked */
+      case SDL_QUIT:
+        should_quit = 1;
+        break;
+
+      /* handle the keyboard */
+      case SDL_KEYDOWN:
+      case SDL_KEYUP: {
+        if (SDLK_ESCAPE == event.key.keysym.sym) {
+          should_quit = 1;
+          break;
+        }
+        auto keyEntry = kKeyMap.find(event.key.keysym.sym);
+        if (keyEntry != kKeyMap.end()) {
+          board->handleKey(keyEntry->second, SDL_KEYDOWN == event.type);
+        }
+        break;
+      }
+      default:
+        break; // Do not handle
+      }
+    }
+
+    // TODO: Compute to be exact 60 Hz. Now is 62.5 Hz
+    Uint32 next_timer_tick = SDL_GetTicks();
+    if (next_timer_tick - last_timer_tick > 16) {
+      last_timer_tick = next_timer_tick;
+      /* Update board timers */
+      board->timerStep();
+    }
+    Uint32 next_gpu_tick = next_timer_tick;
+    if (next_gpu_tick - last_gpu_tick > 8) {
+      /* update the screen */
+      video->update();
+    }
+
     if (debugger_enabled) {
       board->setBreak(true);
       debugger_enabled = false;
@@ -63,86 +116,8 @@ int main_loop(const char *file) {
     if (!board->shutdown()) {
       board->step();
     } else {
-      gameover = 1;
+      should_quit = 1;
     }
-    /* look for an event */
-    if (SDL_PollEvent(&event)) {
-      /* an event was found */
-      switch (event.type) {
-      /* close button clicked */
-      case SDL_QUIT:
-        gameover = 1;
-        break;
-
-      /* handle the keyboard */
-      case SDL_KEYDOWN:
-      case SDL_KEYUP:
-        switch (event.key.keysym.sym) {
-        case SDLK_ESCAPE:
-          gameover = 1;
-          break;
-
-        case SDLK_1:
-          board->handleKey(0x1, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_2:
-          board->handleKey(0x2, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_3:
-          board->handleKey(0x3, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_4:
-          board->handleKey(0xC, SDL_KEYDOWN == event.type);
-          break;
-
-        case SDLK_q:
-          board->handleKey(0x4, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_w:
-          board->handleKey(0x5, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_e:
-          board->handleKey(0x6, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_r:
-          board->handleKey(0xD, SDL_KEYDOWN == event.type);
-          break;
-
-        case SDLK_a:
-          board->handleKey(0x7, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_s:
-          board->handleKey(0x8, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_d:
-          board->handleKey(0x9, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_f:
-          board->handleKey(0xE, SDL_KEYDOWN == event.type);
-          break;
-
-        case SDLK_z:
-          board->handleKey(0xA, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_x:
-          board->handleKey(0x0, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_c:
-          board->handleKey(0xB, SDL_KEYDOWN == event.type);
-          break;
-        case SDLK_v:
-          board->handleKey(0xF, SDL_KEYDOWN == event.type);
-          break;
-          break;
-        }
-        break;
-      }
-    }
-
-    /* draw the background */
-    // SDL_BlitSurface(bg, NULL, screen, NULL);
-    /* update the screen */
-    video->update();
   }
 }
 
@@ -162,14 +137,15 @@ int main(int argc, char **argv) {
     std::fprintf(stderr, "Unable to initialize SDL: %s\n", SDL_GetError());
     return 1;
   }
-  atexit(SDL_Quit);
   sighandler_t srv = signal(SIGINT, signal_handler);
   if (SIG_ERR == srv) {
     std::fprintf(stderr, "Unable to setup SIGINT handler: %s\n",
                  strerror(errno));
+    SDL_Quit();
     return 1;
   }
 
   main_loop(argv[1]);
+  SDL_Quit();
   return 0;
 }

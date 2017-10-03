@@ -52,6 +52,8 @@ void Debugger::dumpCpu() {
                 board()->cpu()->Vx(rId));
   }
   std::printf("\n");
+  std::printf("TIMERS: Dt: %.3x %i St: %.3x %i\n", board()->cpu()->Dt(),
+              board()->cpu()->Dt(), board()->cpu()->St(), board()->cpu()->St());
   std::printf("Stack:\n");
   for (size_t rId = 0; rId < 16; ++rId) {
     uint16_t out16;

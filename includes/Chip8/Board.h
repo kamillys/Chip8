@@ -34,6 +34,7 @@ public:
   bool shutdown() const;
   void setShutdown();
   void step();
+  void timerStep();
 
   void setBreak(bool v) { m_break = v; }
   bool isBreak() const { return m_break; }

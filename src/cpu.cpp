@@ -13,6 +13,8 @@ void Cpu::reset() {
   m_St = 0;
   std::fill(m_Regs.begin(), m_Regs.end(), 0);
   std::fill(m_Stack.begin(), m_Stack.end(), 0);
+  m_await = false;
+  m_regKey = 0;
 }
 
 ResultType Cpu::timerStep(Board *board) {
@@ -36,6 +38,9 @@ void Cpu::invalid_opcode(const Instruction &instr, Board *board) {
 Cpu::Cpu() { reset(); }
 
 ResultType Cpu::step(Board *board) {
+  if (m_await) {
+    return ResultType::Ok;
+  }
   ResultType rv;
   // Perform single instruction
   std::uint16_t opcode;
@@ -43,7 +48,7 @@ ResultType Cpu::step(Board *board) {
   CHIP8_CHECK_RESULT(rv);
 
   Instruction instr(opcode);
-  printf("\t%.3X: %.4X\t%s\n", pc(), opcode, instr.disasm().c_str());
+  // printf("\t%.3X: %.4X\t%s\n", pc(), opcode, instr.disasm().c_str());
 
   switch (instr.type()) {
   case 0x0: {
@@ -129,20 +134,42 @@ ResultType Cpu::step(Board *board) {
       setPc(pc() + 2);
       return ResultType::Ok;
     }
-    // case 0x5: // SUB Vx, Vy with NOT carry?
-    //    str << "SUB V" << (std::uint16_t)X() << ", V" << (std::uint16_t)Y();
-    //    break;
-    // case 0x6:
-    //    str << "SHR V" << (std::uint16_t)X() << "{, V" << (std::uint16_t)Y()
-    //    << "}";
-    //    break;
-    // case 0x7:
-    //    str << "SUBN V" << (std::uint16_t)X() << ", V" << (std::uint16_t)Y();
-    //    break;
-    // case 0xe:
-    //    str << "SHL V" << (std::uint16_t)X() << "{, V" << (std::uint16_t)Y()
-    //    << "}";
-    //    break;
+    case 0x5: // SUB Vx, Vy with NOT
+    {
+      std::uint8_t x = Vx(instr.X());
+      std::uint8_t y = Vx(instr.Y());
+      setVx(0xF, (x > y) ? 0x1 : 0);
+      setVx(instr.X(), x - y);
+      setPc(pc() + 2);
+      return ResultType::Ok;
+    }
+    case 0x6: // SHR Vx {, Vy}
+    {
+      std::uint16_t val = Vx(instr.X());
+      setVx(0xF, 0x1 & val);
+      val >>= 1;
+      setVx(instr.X(), val & 0xFF);
+      setPc(pc() + 2);
+      return ResultType::Ok;
+    }
+    case 0x7: // SUBN Vx, Vy
+    {
+      std::uint8_t x = Vx(instr.X());
+      std::uint8_t y = Vx(instr.Y());
+      setVx(0xF, (y > x) ? 0x1 : 0);
+      setVx(instr.X(), y - x);
+      setPc(pc() + 2);
+      return ResultType::Ok;
+    }
+    case 0xe: // SHL Vx {, Vy}
+    {
+      std::uint16_t val = Vx(instr.X());
+      val <<= 1;
+      setVx(0xF, 0x1 & (val >> 8));
+      setVx(instr.X(), val & 0xFF);
+      setPc(pc() + 2);
+      return ResultType::Ok;
+    }
     default:
       invalid_opcode(instr, board);
       return ResultType::InvalidOpcode;
@@ -158,10 +185,9 @@ ResultType Cpu::step(Board *board) {
     setI(instr.NNN());
     setPc(pc() + 2);
     return ResultType::Ok;
-  // case 0xb: // JP V0, addr // Jump to V0 + addr
-  //  setI(instr.NNN());
-  //  setPc(Vx(0) + instr.NNN());
-  //  return ResultType::Ok;
+  case 0xb: // JP V0, addr // Jump to V0 + addr
+    setPc(Vx(0) + instr.NNN());
+    return ResultType::Ok;
   case 0xc: // RND Vx, byte
     setVx(instr.X(), random() & instr.NN());
     setPc(pc() + 2);
@@ -212,8 +238,10 @@ ResultType Cpu::step(Board *board) {
       setVx(instr.X(), Dt());
       setPc(pc() + 2);
       return ResultType::Ok;
-    // case 0x0A: // LD Vx, K
-    //  // TODO: Wait for key press and resume
+    case 0x0A: // LD Vx, K
+      setAwaitKey(instr.X());
+      setPc(pc() + 2);
+      return ResultType::Ok;
     case 0x15: // LD DT, Vx
       SetDt(Vx(instr.X()));
       setPc(pc() + 2);
@@ -285,6 +313,13 @@ ResultType Cpu::step(Board *board) {
   }
   invalid_opcode(instr, board);
   return ResultType::InvalidOpcode;
+}
+
+ResultType Cpu::keyStep(Board * /*board*/, uint8_t key) {
+  if (isKeyAwait()) {
+    keyActive(key);
+  }
+  return ResultType::Ok;
 }
 
 uint8_t Cpu::random() {

@@ -20,16 +20,30 @@ class Cpu {
   std::uint8_t m_Dt;
   std::uint8_t m_St;
 
+  bool m_await;
+  std::uint8_t m_regKey;
+
   void invalid_opcode(const Instruction &instr, Board *board);
+  void setAwaitKey(uint8_t reg) {
+    m_await = true;
+    m_regKey = reg;
+  }
+  void keyActive(uint8_t key) {
+    m_await = false;
+    m_Regs[m_regKey] = key;
+  }
 
 public:
   Cpu();
 
   void reset();
-  ResultType timerStep(Board *board);
-  ResultType step(Board *board);
+  CHIP8_WARN_UNUSED ResultType timerStep(Board *board);
+  CHIP8_WARN_UNUSED ResultType step(Board *board);
+  CHIP8_WARN_UNUSED ResultType keyStep(Board *board, uint8_t key);
 
   uint8_t random();
+
+  CHIP8_WARN_UNUSED bool isKeyAwait() const { return m_await; }
 
   CHIP8_DEPRECATED std::uint8_t Vx(std::uint8_t x) { return m_Regs[x]; }
   CHIP8_WARN_UNUSED ResultType Vx(std::uint8_t x, std::uint8_t &out) {
@@ -91,7 +105,7 @@ public:
   void decDt() {
     if (0 == m_Dt)
       return;
-    m_Dt;
+    m_Dt--;
   }
 
   CHIP8_WARN_UNUSED ResultType SetSt(uint8_t val) {

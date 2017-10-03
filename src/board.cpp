@@ -26,16 +26,24 @@ void Board::setShutdown() { m_shutdown = true; }
 
 void Board::step() { cpu()->step(this); }
 
+void Board::timerStep() { cpu()->timerStep(this); }
+
 void Board::handleKey(uint8_t key, bool down) {
   m_keys[key] = down;
   if (down) {
+    cpu()->keyStep(this, key);
     fprintf(stderr, "KEYPRESS: %X\n", key);
   } else {
     fprintf(stderr, "KEYRELEA: %X\n", key);
   }
 }
 
-bool Board::isKeyDown(uint8_t key) { return m_keys[key]; }
+bool Board::isKeyDown(uint8_t key) {
+  // bool rv = m_keys[key];
+  // m_keys[key] = false;
+  // return rv;
+  return m_keys[key];
+}
 
 ResultType Board::memoryWrite(uint16_t addr, uint8_t val) {
   return memory()->write(addr, val);

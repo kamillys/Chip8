@@ -1,3 +1,4 @@
+#include <Chip8/Board.h>
 #include <Chip8/Cpu.h>
 #include <iomanip>
 #include <iostream>

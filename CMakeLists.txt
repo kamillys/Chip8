@@ -43,12 +43,7 @@ endif() # SDL_FOUND
 #endif()
 
 #if TESTS
-#find_package(GTest REQUIRED)
-#if(GTEST_FOUND)
-    list(APPEND PROJECT_TESTLIBS gtest pthread)
-#else()
-#    message(FATAL_ERROR "GTest not found. Aborting")
-#endif()
+include(gtest.cmake)
 
 #Add include directories
 #include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -95,7 +90,6 @@ add_executable(${PROJECT_NAME} ${MAIN_LIST} ${COMMON_LIST} ${HEADERS_LIST})
 add_executable(${PROJECT_NAME}_tests ${TEST_LIST} ${COMMON_LIST} ${HEADERS_LIST})
 target_link_libraries(${PROJECT_NAME} ${PROJECTLIBS})
 target_link_libraries(${PROJECT_NAME}_tests ${PROJECTLIBS} ${PROJECT_TESTLIBS})
-
 #Installation
 #message("Installation dir: ${CMAKE_INSTALL_PREFIX}")
 

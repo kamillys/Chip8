@@ -3,10 +3,15 @@ compiler:
   - gcc
   - clang
 
-install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -y -qq libgtest-dev
-  - sudo apt-get install -y -qq libsdl2-dev
+addons:
+  apt:
+     packages: [
+        libsdl2-dev cmake libgtest-dev
+     ]
+
+# To fix that stupid bug
+before_build:
+ - sudo cp -a libgtest_main.so libgtest.so /usr/lib/
 script:
   - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build . && cmake --build .
 after_success:

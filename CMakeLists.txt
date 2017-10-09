@@ -43,9 +43,11 @@ endif() # SDL_FOUND
 #endif()
 
 #if TESTS
-#pkg_check_modules(GTEST REQUIRED gtest)
-#if (GTEST_FOUND)
+#find_package(GTest REQUIRED)
+#if(GTEST_FOUND)
     list(APPEND PROJECT_TESTLIBS gtest pthread)
+#else()
+#    message(FATAL_ERROR "GTest not found. Aborting")
 #endif()
 
 #Add include directories

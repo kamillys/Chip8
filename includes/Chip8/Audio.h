@@ -16,6 +16,7 @@ class Audio {
 public:
   bool beep() const { return m_beep; }
   Audio();
+  ~Audio();
   void startBeep();
   void stopBeep();
   void reset();

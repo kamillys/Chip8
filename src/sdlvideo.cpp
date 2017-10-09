@@ -7,7 +7,7 @@ constexpr int VIDEO_SCALE = 16;
 Chip8::SDLVideo::SDLVideo() {
   window = SDL_CreateWindow("Chip8 emulator", SDL_WINDOWPOS_CENTERED,
                             SDL_WINDOWPOS_CENTERED, 64 * VIDEO_SCALE,
-                            32 * VIDEO_SCALE, SDL_WINDOW_SHOWN);
+                            32 * VIDEO_SCALE, SDL_WINDOW_HIDDEN);
   if (!window) {
     std::fprintf(stderr, "Cannot create SDL video: %s\n", SDL_GetError());
     exit(1);
@@ -69,6 +69,11 @@ void Chip8::SDLVideo::update() {
   // SDL_RenderClear(renderer);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
+}
+
+void Chip8::SDLVideo::show()
+{
+  SDL_ShowWindow(window);
 }
 
 void Chip8::SDLVideo::clearScreen() {

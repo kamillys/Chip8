@@ -13,9 +13,7 @@ addons:
 before_build:
  - sudo cp -a libgtest_main.so libgtest.so /usr/lib/
 script:
-  - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build . && cmake --build .
-after_success:
-  - cd build && ./Chip8_tests
+  - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build . && cmake --build . && ./Chip8_tests
 
 notifications:
   email: false

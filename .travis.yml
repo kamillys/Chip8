@@ -5,7 +5,7 @@ compiler:
 
 install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y -qq lcov curl
+  - sudo apt-get install -y -qq libsdl2-dev libgtest-dev
 script:
   - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build . && cmake --build .
 after_success:

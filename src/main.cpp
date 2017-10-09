@@ -55,6 +55,7 @@ int main_loop(const char *file) {
     return 1;
   }
   auto video = std::make_shared<Chip8::SDLVideo>();
+  video->show();
   // Initialize Board
   auto board = std::make_shared<Chip8::Board>(video);
   board->LoadBinary(binaryBlob);

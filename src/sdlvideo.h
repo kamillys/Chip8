@@ -25,6 +25,7 @@ public:
 
   virtual void reset();
   virtual void update();
+  void show();
   virtual void clearScreen();
   virtual bool flipSprite(uint8_t x, uint8_t y, uint8_t v);
   virtual bool flipBit(uint8_t x, uint8_t y, bool v);

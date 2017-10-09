@@ -5,21 +5,24 @@
 constexpr int VIDEO_SCALE = 16;
 
 Chip8::SDLVideo::SDLVideo() {
-  int videoMode = SDL_SWSURFACE | SDL_DOUBLEBUF | SDL_ANYFORMAT;
-  surface = SDL_SetVideoMode(64 * VIDEO_SCALE, 32 * VIDEO_SCALE, 8, videoMode);
-  if (!surface) {
+  window = SDL_CreateWindow("Chip8 emulator", SDL_WINDOWPOS_CENTERED,
+                            SDL_WINDOWPOS_CENTERED, 64 * VIDEO_SCALE,
+                            32 * VIDEO_SCALE, SDL_WINDOW_SHOWN);
+  if (!window) {
     std::fprintf(stderr, "Cannot create SDL video: %s\n", SDL_GetError());
     exit(1);
   }
-  data =
-      SDL_CreateRGBSurface(SDL_SWSURFACE, 64 * VIDEO_SCALE, 32 * VIDEO_SCALE,
-                           32, surface->format->Rmask, surface->format->Gmask,
-                           surface->format->Bmask, 0);
-  if (!data) {
-    std::fprintf(stderr, "Cannot create SDL video: %s\n", SDL_GetError());
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  if (!renderer) {
+    std::fprintf(stderr, "Cannot create SDL renderer: %s\n", SDL_GetError());
     exit(1);
   }
-  SDL_WM_SetCaption("SDL Test", "SDL Test");
+  texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
+                              SDL_TEXTUREACCESS_TARGET, 64, 32);
+  if (!texture) {
+    std::fprintf(stderr, "Cannot create SDL texture: %s\n", SDL_GetError());
+    exit(1);
+  }
 
   for (auto &row : m_screen)
     for (auto &bit : row)
@@ -30,39 +33,51 @@ Chip8::SDLVideo::~SDLVideo() {}
 
 void Chip8::SDLVideo::reset() { clearScreen(); }
 
-void Chip8::SDLVideo::show() {}
-
 void Chip8::SDLVideo::update() {
-  if (SDL_MUSTLOCK(data)) {
-    SDL_LockSurface(data);
-  }
   for (uint8_t y = 0; y < m_screen.size(); ++y) {
     for (uint8_t x = 0; x < m_screen[y].size(); ++x) {
-      uint32_t value = 0x00000000;
+      auto &val = m_ledBuffer[y][x];
+      constexpr uint8_t showDiffVal = 0x55;
+      constexpr uint8_t hideDiffVal = 0x15;
       if (m_screen[y][x]) {
-        value = 0xFFFFFF;
+        if (val < 0xFF - showDiffVal)
+          val += showDiffVal;
+        else
+          val = 0xFF;
+      } else {
+        if (val > hideDiffVal)
+          val -= hideDiffVal;
+        else
+          val = 0;
       }
-      for (uint32_t Y = 0; Y < VIDEO_SCALE; ++Y)
-        for (uint32_t X = 0; X < VIDEO_SCALE; ++X) {
-          Uint8 *p = (Uint8 *)data->pixels +
-                     (y * VIDEO_SCALE + Y) * data->pitch +
-                     (x * VIDEO_SCALE + X) * data->format->BytesPerPixel;
-          *p = value;
-        }
     }
   }
-  if (SDL_MUSTLOCK(data)) {
-    SDL_UnlockSurface(data);
+
+  SDL_SetRenderTarget(renderer, texture);
+  // SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
+  // SDL_RenderClear(renderer);
+  for (uint8_t y = 0; y < m_screen.size(); ++y) {
+    for (uint8_t x = 0; x < m_screen[y].size(); ++x) {
+      auto val = m_ledBuffer[y][x];
+      SDL_SetRenderDrawColor(renderer, val, val, val, 0xff);
+      SDL_RenderDrawPoint(renderer, x, y);
+    }
   }
 
-  SDL_BlitSurface(data, 0, surface, 0);
-  SDL_UpdateRect(surface, 0, 0, 0, 0);
+  SDL_SetRenderTarget(renderer, NULL);
+  // SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
+  // SDL_RenderClear(renderer);
+  SDL_RenderCopy(renderer, texture, NULL, NULL);
+  SDL_RenderPresent(renderer);
 }
 
 void Chip8::SDLVideo::clearScreen() {
   for (auto &row : m_screen)
     for (auto &bit : row)
       bit = false;
+  for (auto &row : m_ledBuffer)
+    for (auto &bit : row)
+      bit = 0;
 }
 
 bool Chip8::SDLVideo::flipSprite(uint8_t x, uint8_t y, uint8_t v) {

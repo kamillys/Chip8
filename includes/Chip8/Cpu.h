@@ -1,10 +1,10 @@
 #pragma once
 
 namespace Chip8 {
+class Board;
 class Cpu;
 } // namespace Chip8
 
-#include <Chip8/Board.h>
 #include <Chip8/Common.h>
 #include <Chip8/Instruction.h>
 #include <array>
@@ -116,7 +116,7 @@ public:
   void decSt() {
     if (0 == m_St)
       return;
-    m_St;
+    m_St--;
   }
 };
 } // namespace Chip8

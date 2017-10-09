@@ -6,7 +6,8 @@
 #include "debugger.h"
 #include "sdlvideo.h"
 
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_keyboard.h>
 #include <csignal>
 #include <cstdio>
 #include <fstream>
@@ -15,14 +16,18 @@
 
 namespace {
 
-const std::map<SDLKey, std::uint16_t> kKeyMap = {
-    {SDLK_1, 0x1}, {SDLK_2, 0x2}, {SDLK_3, 0x3}, {SDLK_4, 0xC},
+const std::map<SDL_Scancode, std::uint16_t> kKeyMap = {
+    {SDL_SCANCODE_1, 0x1}, {SDL_SCANCODE_2, 0x2},
+    {SDL_SCANCODE_3, 0x3}, {SDL_SCANCODE_4, 0xC},
 
-    {SDLK_q, 0x4}, {SDLK_w, 0x5}, {SDLK_e, 0x6}, {SDLK_r, 0xD},
+    {SDL_SCANCODE_Q, 0x4}, {SDL_SCANCODE_W, 0x5},
+    {SDL_SCANCODE_E, 0x6}, {SDL_SCANCODE_R, 0xD},
 
-    {SDLK_a, 0x7}, {SDLK_s, 0x8}, {SDLK_d, 0x9}, {SDLK_f, 0xE},
+    {SDL_SCANCODE_A, 0x7}, {SDL_SCANCODE_S, 0x8},
+    {SDL_SCANCODE_D, 0x9}, {SDL_SCANCODE_F, 0xE},
 
-    {SDLK_z, 0xA}, {SDLK_x, 0x0}, {SDLK_c, 0xB}, {SDLK_v, 0xF},
+    {SDL_SCANCODE_Z, 0xA}, {SDL_SCANCODE_X, 0x0},
+    {SDL_SCANCODE_C, 0xB}, {SDL_SCANCODE_V, 0xF},
 };
 
 std::vector<uint8_t> LoadFile(const char *file) {
@@ -50,7 +55,6 @@ int main_loop(const char *file) {
     return 1;
   }
   auto video = std::make_shared<Chip8::SDLVideo>();
-  video->show();
   // Initialize Board
   auto board = std::make_shared<Chip8::Board>(video);
   board->LoadBinary(binaryBlob);
@@ -59,7 +63,7 @@ int main_loop(const char *file) {
   auto debugger = std::make_shared<Chip8::Debugger>(board);
 
   Uint32 last_timer_tick = SDL_GetTicks();
-  Uint32 last_gpu_tick = last_timer_tick;
+  Uint32 last_board_tick = last_timer_tick;
 
   /* message pump */
   int should_quit = 0;
@@ -76,11 +80,11 @@ int main_loop(const char *file) {
       /* handle the keyboard */
       case SDL_KEYDOWN:
       case SDL_KEYUP: {
-        if (SDLK_ESCAPE == event.key.keysym.sym) {
+        if (SDL_SCANCODE_ESCAPE == event.key.keysym.scancode) {
           should_quit = 1;
           break;
         }
-        auto keyEntry = kKeyMap.find(event.key.keysym.sym);
+        auto keyEntry = kKeyMap.find(event.key.keysym.scancode);
         if (keyEntry != kKeyMap.end()) {
           board->handleKey(keyEntry->second, SDL_KEYDOWN == event.type);
         }
@@ -97,11 +101,8 @@ int main_loop(const char *file) {
       last_timer_tick = next_timer_tick;
       /* Update board timers */
       board->timerStep();
-    }
-    Uint32 next_gpu_tick = next_timer_tick;
-    if (next_gpu_tick - last_gpu_tick > 8) {
-      /* update the screen */
       video->update();
+      board->step();
     }
 
     if (debugger_enabled) {
@@ -114,7 +115,11 @@ int main_loop(const char *file) {
     }
 
     if (!board->shutdown()) {
-      board->step();
+      // Board should tick at 50 Hz rate
+      if (next_timer_tick - last_board_tick > 20) {
+        last_board_tick = next_timer_tick;
+        board->step();
+      }
     } else {
       should_quit = 1;
     }

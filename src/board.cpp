@@ -5,6 +5,7 @@ Board::Board(std::shared_ptr<Video> video) {
   m_video = video;
   m_cpu = std::make_shared<Chip8::Cpu>();
   m_memory = std::make_shared<Chip8::Memory>();
+  m_audio = std::make_shared<Chip8::Audio>();
   reset();
 }
 
@@ -17,6 +18,8 @@ Memory *Board::memory() { return m_memory.get(); }
 void Board::reset() {
   m_shutdown = false;
   m_memory->reset();
+  m_cpu->reset();
+  m_audio->reset();
   std::fill(m_keys.begin(), m_keys.end(), false);
 }
 
@@ -32,9 +35,6 @@ void Board::handleKey(uint8_t key, bool down) {
   m_keys[key] = down;
   if (down) {
     cpu()->keyStep(this, key);
-    fprintf(stderr, "KEYPRESS: %X\n", key);
-  } else {
-    fprintf(stderr, "KEYRELEA: %X\n", key);
   }
 }
 
@@ -75,15 +75,12 @@ void Board::flipSprite(uint8_t x, uint8_t y, uint8_t sprite, bool &result) {
   result = video()->flipSprite(x, y, sprite);
 }
 
-void Board::startBeep() {
-  // static_assert(false,"");
-}
+void Board::startBeep() { audio()->startBeep(); }
 
-void Board::stopBeep() {
-  // static_assert(false,"");
-}
+void Board::stopBeep() { audio()->stopBeep(); }
 
 Cpu *Board::cpu() { return m_cpu.get(); }
 Video *Board::video() { return m_video.get(); }
+Audio *Board::audio() { return m_audio.get(); }
 
 } // namespace Chip8

@@ -29,7 +29,7 @@ else()
 endif()
 
 #if SDL
-pkg_check_modules(SDL REQUIRED sdl>=1.2)
+pkg_check_modules(SDL REQUIRED sdl2>=2.0.0)
 if (SDL_FOUND)
     list(APPEND INCLUDEDIRS ${SDL_INCLUDE_DIRS})
     set(PROJECTLIBS ${PROJECTLIBS} ${SDL_LIBRARIES} )
@@ -60,6 +60,7 @@ include_directories(${INCLUDEDIRS})
 set(SRC_LIST
     "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/instruction.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/board.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/cpu.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/memory.cpp"
@@ -72,6 +73,7 @@ set(SRC_LIST
 #file(GLOB_RECURSE HEADERS_LIST ${CMAKE_CURRENT_SOURCE_DIR}/includes/*)
 
 set(HEADERS_LIST
+    "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Audio.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Board.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Common.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Cpu.h"

@@ -4,6 +4,7 @@ namespace Chip8 {
 class Board;
 } // namespace Chip8
 
+#include <Chip8/Audio.h>
 #include <Chip8/Cpu.h>
 #include <Chip8/Memory.h>
 #include <Chip8/Video.h>
@@ -16,6 +17,7 @@ class Board {
   std::shared_ptr<Cpu> m_cpu;
   std::shared_ptr<Memory> m_memory;
   std::shared_ptr<Video> m_video;
+  std::shared_ptr<Audio> m_audio;
   std::array<bool, 16> m_keys;
   bool m_break = false;
   bool m_shutdown = false;
@@ -29,6 +31,7 @@ public:
 
   CHIP8_DEPRECATED Cpu *cpu();
   CHIP8_DEPRECATED Video *video();
+  CHIP8_DEPRECATED Audio *audio();
 
   void reset();
   bool shutdown() const;

@@ -46,10 +46,7 @@ Audio::Audio() {
   SDL_PauseAudio(0);
 }
 
-Audio::~Audio()
-{
-  SDL_CloseAudio();
-}
+Audio::~Audio() { SDL_CloseAudio(); }
 
 void Audio::startBeep() {
   if (beep())

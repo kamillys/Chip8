@@ -71,10 +71,7 @@ void Chip8::SDLVideo::update() {
   SDL_RenderPresent(renderer);
 }
 
-void Chip8::SDLVideo::show()
-{
-  SDL_ShowWindow(window);
-}
+void Chip8::SDLVideo::show() { SDL_ShowWindow(window); }
 
 void Chip8::SDLVideo::clearScreen() {
   for (auto &row : m_screen)

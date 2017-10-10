@@ -2,9 +2,11 @@
 #include <cstdio>
 #include <unistd.h>
 
+namespace Chip8 {
+
 constexpr int VIDEO_SCALE = 16;
 
-Chip8::SDLVideo::SDLVideo() {
+SDLVideo::SDLVideo() {
   window = SDL_CreateWindow("Chip8 emulator", SDL_WINDOWPOS_CENTERED,
                             SDL_WINDOWPOS_CENTERED, 64 * VIDEO_SCALE,
                             32 * VIDEO_SCALE, SDL_WINDOW_HIDDEN);
@@ -29,11 +31,9 @@ Chip8::SDLVideo::SDLVideo() {
       bit = false;
 }
 
-Chip8::SDLVideo::~SDLVideo() {}
+SDLVideo::~SDLVideo() {}
 
-void Chip8::SDLVideo::reset() { clearScreen(); }
-
-void Chip8::SDLVideo::update() {
+void SDLVideo::update() {
   for (uint8_t y = 0; y < m_screen.size(); ++y) {
     for (uint8_t x = 0; x < m_screen[y].size(); ++x) {
       auto &val = m_ledBuffer[y][x];
@@ -71,40 +71,5 @@ void Chip8::SDLVideo::update() {
   SDL_RenderPresent(renderer);
 }
 
-void Chip8::SDLVideo::show()
-{
-  SDL_ShowWindow(window);
-}
-
-void Chip8::SDLVideo::clearScreen() {
-  for (auto &row : m_screen)
-    for (auto &bit : row)
-      bit = false;
-  for (auto &row : m_ledBuffer)
-    for (auto &bit : row)
-      bit = 0;
-}
-
-bool Chip8::SDLVideo::flipSprite(uint8_t x, uint8_t y, uint8_t v) {
-  bool rv = false;
-  for (uint8_t it = 0; it < 8; ++it) {
-    rv |= flipBit(x + it, y, (v & (1 << (7 - it))) >> (7 - it));
-  }
-  return rv;
-}
-
-bool Chip8::SDLVideo::flipBit(uint8_t x, uint8_t y, bool v) {
-  y = y % m_screen.size();
-  x = x % m_screen[y].size();
-  bool oldv = m_screen[y][x];
-  m_screen[y][x] ^= v;
-  return oldv && !v;
-}
-
-void Chip8::SDLVideo::dump() {
-  for (auto row : m_screen) {
-    for (auto bit : row)
-      std::printf("%c", bit ? '*' : '_');
-    std::printf("\n");
-  }
+void SDLVideo::show() { SDL_ShowWindow(window); }
 }

@@ -41,7 +41,7 @@ void Debugger::dumpDisasm(std::uint16_t offset, size_t count) {
   }
 }
 
-void Debugger:: dumpCpu() {
+void Debugger::dumpCpu() {
   std::printf("PC: %.4x\n", board()->cpu()->pc());
   std::printf("SP: %.4x\n", board()->cpu()->Sp());
   std::printf("I: %.4x", board()->cpu()->I());

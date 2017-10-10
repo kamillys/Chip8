@@ -13,14 +13,16 @@ class Audio {
 
   void setBeep(bool v) { m_beep = v; }
 
+protected:
+  virtual void beginBeep();
+  virtual void endBeep();
+
 public:
-  bool beep() const { return m_beep; }
   Audio();
   ~Audio();
   void startBeep();
   void stopBeep();
-  void reset();
-
-  void audioCb(uint8_t *stream, int len);
+  bool beep() const { return m_beep; }
+  virtual void reset();
 };
 } // namespace Chip8

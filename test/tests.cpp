@@ -15,8 +15,8 @@ std::shared_ptr<Chip8::Board> g_board;
 class Chip8Test : public ::testing::Test {
 public:
   static void SetUpTestCase() {
-    g_board =
-        std::make_shared<Chip8::Board>(std::make_shared<Chip8::SDLVideo>());
+    g_board = std::make_shared<Chip8::Board>(std::make_shared<Chip8::Video>(),
+                                             std::make_shared<Chip8::Audio>());
   }
 
   static void TearDownTestCase() { g_board.reset(); }
@@ -108,16 +108,6 @@ TEST_F(Chip8Test, ADD_Vx_nn) {
 //                       ::testing::Range<uint16_t>(0, 0xff + 1)));
 
 int main(int argc, char **argv) {
-  int rv;
-  // Initialize SDL
-  rv = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER |
-                SDL_INIT_NOPARACHUTE);
-  if (0 != rv) {
-    std::fprintf(stderr, "Unable to initialize SDL: %s\n", SDL_GetError());
-    return 1;
-  }
   testing::InitGoogleTest(&argc, argv);
-  rv = RUN_ALL_TESTS();
-  SDL_Quit();
-  return rv;
+  return RUN_ALL_TESTS();
 }

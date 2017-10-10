@@ -25,7 +25,7 @@ class Board {
   CHIP8_DEPRECATED Memory *memory();
 
 public:
-  Board(std::shared_ptr<Video> video);
+  Board(std::shared_ptr<Video> video, std::shared_ptr<Audio> audio);
   void LoadBinary(std::vector<uint8_t> data,
                   std::size_t offset = Chip8::ProgramStartLocation);
 

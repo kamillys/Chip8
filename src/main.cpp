@@ -4,6 +4,7 @@
 #include <Chip8/Video.h>
 
 #include "debugger.h"
+#include "sdlaudio.h"
 #include "sdlvideo.h"
 
 #include <SDL2/SDL.h>
@@ -55,8 +56,10 @@ int main_loop(const char *file) {
     return 1;
   }
   auto video = std::make_shared<Chip8::SDLVideo>();
+  auto audio = std::make_shared<Chip8::SDLAudio>();
+  video->show();
   // Initialize Board
-  auto board = std::make_shared<Chip8::Board>(video);
+  auto board = std::make_shared<Chip8::Board>(video, audio);
   board->LoadBinary(binaryBlob);
 
   // Initialize debugger

@@ -1,11 +1,11 @@
 #include <Chip8/Board.h>
 namespace Chip8 {
 
-Board::Board(std::shared_ptr<Video> video) {
+Board::Board(std::shared_ptr<Video> video, std::shared_ptr<Audio> audio) {
   m_video = video;
+  m_audio = audio;
   m_cpu = std::make_shared<Chip8::Cpu>();
   m_memory = std::make_shared<Chip8::Memory>();
-  m_audio = std::make_shared<Chip8::Audio>();
   reset();
 }
 

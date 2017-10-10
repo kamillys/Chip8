@@ -1,0 +1,19 @@
+language: cpp
+compiler:
+  - gcc
+  - clang
+
+addons:
+  apt:
+     packages: [
+        libsdl2-dev cmake libgtest-dev
+     ]
+
+# To fix that stupid bug
+before_build:
+ - sudo cp -a libgtest_main.so libgtest.so /usr/lib/
+script:
+  - mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build . && cmake --build . && ./Chip8_tests
+
+notifications:
+  email: false

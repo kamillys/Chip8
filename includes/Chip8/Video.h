@@ -4,17 +4,25 @@ namespace Chip8 {
 class Video;
 } // namespace Chip8
 
-#include <stdint.h>
+#include <array>
+#include <cstdint>
 
 namespace Chip8 {
 
 class Video {
-public:
-  virtual void reset() = 0;
+protected:
+  // There should be actual pixel data stored
+  std::array<std::array<bool, 64>, 32> m_screen;
+  // To implement pixel fadeout, store current value in buffer.
+  // Updated in update() method
+  std::array<std::array<uint8_t, 64>, 32> m_ledBuffer;
 
-  virtual void clearScreen() = 0;
-  virtual bool flipSprite(uint8_t x, uint8_t y, uint8_t v) = 0;
-  virtual bool flipBit(uint8_t x, uint8_t y, bool v) = 0;
-  virtual void dump() = 0;
+public:
+  virtual void reset();
+  void clearScreen();
+  bool flipSprite(uint8_t x, uint8_t y, uint8_t v);
+  bool flipBit(uint8_t x, uint8_t y, bool v);
+  void dump();
 };
+
 } // namespace Chip8

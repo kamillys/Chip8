@@ -32,7 +32,7 @@ endif()
 pkg_check_modules(SDL REQUIRED sdl2>=2.0.0)
 if (SDL_FOUND)
     list(APPEND INCLUDEDIRS ${SDL_INCLUDE_DIRS})
-    set(PROJECTLIBS ${PROJECTLIBS} ${SDL_LIBRARIES} )
+    list(APPEND PROJECT_MAINLIBS ${SDL_LIBRARIES} )
     add_definitions(${SDL_CFLAGS} ${SDL_CFLAGS_OTHER})
 endif() # SDL_FOUND
 
@@ -42,11 +42,8 @@ endif() # SDL_FOUND
     list(APPEND PROJECTLIBS "readline")
 #endif()
 
-#find_package(Boost COMPONENTS regex)
-#if (Boost_FOUND)
-#    set(INCLUDEDIRS ${INCLUDEDIRS} ${Boost_INCLUDE_DIRS})
-#    set(PROJECTLIBS ${PROJECTLIBS} ${Boost_LIBRARIES} )
-#endif()
+#if TESTS
+include(gtest.cmake)
 
 #Add include directories
 #include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -57,8 +54,7 @@ include_directories(${INCLUDEDIRS})
 #add_definitions(-DUSE_HUGE_GPU_MEM)
 
 #Project sources
-set(SRC_LIST
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
+set(COMMON_LIST
     "${CMAKE_CURRENT_SOURCE_DIR}/src/instruction.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/audio.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/board.cpp"
@@ -66,11 +62,8 @@ set(SRC_LIST
     "${CMAKE_CURRENT_SOURCE_DIR}/src/memory.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/debugger.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/debugger.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/sdlvideo.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/sdlvideo.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/video.cpp"
     )
-
-#file(GLOB_RECURSE HEADERS_LIST ${CMAKE_CURRENT_SOURCE_DIR}/includes/*)
 
 set(HEADERS_LIST
     "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Audio.h"
@@ -82,10 +75,22 @@ set(HEADERS_LIST
     "${CMAKE_CURRENT_SOURCE_DIR}/includes/Chip8/Instruction.h"
     )
 
-#Library
-add_executable(${PROJECT_NAME} ${SRC_LIST} ${HEADERS_LIST})
-target_link_libraries(${PROJECT_NAME} ${PROJECTLIBS})
+set(MAIN_LIST
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sdlvideo.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sdlvideo.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sdlaudio.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sdlaudio.h"
+    )
 
+set(TEST_LIST
+    "${CMAKE_CURRENT_SOURCE_DIR}/test/tests.cpp")
+
+#Library
+add_executable(${PROJECT_NAME} ${MAIN_LIST} ${COMMON_LIST} ${HEADERS_LIST})
+add_executable(${PROJECT_NAME}_tests ${TEST_LIST} ${COMMON_LIST} ${HEADERS_LIST})
+target_link_libraries(${PROJECT_NAME} ${PROJECTLIBS} ${PROJECT_MAINLIBS})
+target_link_libraries(${PROJECT_NAME}_tests ${PROJECTLIBS} ${PROJECT_TESTLIBS})
 #Installation
 #message("Installation dir: ${CMAKE_INSTALL_PREFIX}")
 

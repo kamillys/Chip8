@@ -11,11 +11,13 @@ step-install-deps: &step-install-deps
     command: |
       apt update
       apt install -y cmake libsdl2-dev
+      git submodule init
+      git submodule update
 
-checkout:
-  post:
-    - git submodule init
-    - git submodule update
+#checkout:
+#  post:
+#    - git submodule init
+#    - git submodule update
 
 step-test: &step-test
   run:

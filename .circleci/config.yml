@@ -28,7 +28,7 @@ step-test: &step-test
       cd build
       cmake -DCMAKE_BUILD_TYPE=Debug ..
       cmake --build .
-      echo "ASDF" "<< parameters.docker_image >>"
+      echo "ASDF" << parameters.docker_image >>
       ./Chip8_tests
 
 jobs:

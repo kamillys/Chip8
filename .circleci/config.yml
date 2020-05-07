@@ -19,16 +19,11 @@ step-test: &step-test
   run:
     name: Perform tests
     parameters:
-      docker_image:
-        description: "Sample desc"
-        default: "hello world"
-        type: string
     command: |
       mkdir build
       cd build
       cmake -DCMAKE_BUILD_TYPE=Debug ..
       cmake --build .
-      echo "ASDF" << parameters.docker_image >>
       ./Chip8_tests
 
 jobs:
@@ -36,10 +31,16 @@ jobs:
     docker:
       - image: gcc:8.2
     resource_class: small
+    parameters:
+      docker_image:
+        description: "Sample desc"
+        default: "hello world"
+        type: string
     steps:
       - checkout
       - *step-install-deps
       - *step-test
+      - run: echo "TEST" "<< >>"
 
 workflows:
   build-linux:

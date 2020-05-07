@@ -3,7 +3,7 @@
 parameters:
   docker_image:
     type: string
-    default: 'gcc:8.2'
+    default: 'hello world'
 
 step-install-deps: &step-install-deps
   run:
@@ -25,13 +25,14 @@ step-test: &step-test
       cd build
       cmake -DCMAKE_BUILD_TYPE=Debug ..
       cmake --build .
+      echo "ASDF" << parameters.docker_image >>
       ./Chip8_tests
 
 version: 2
 jobs:
   perform_test:
     docker:
-      - image: << parameters.docker_image >>
+      - image: gcc:8.2
     resource_class: small
     steps:
       - checkout

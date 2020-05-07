@@ -10,7 +10,7 @@ step-install-deps: &step-install-deps
     name: Install project dependencies
     command: |
       apt update
-      apt install cmake libsdl2-dev
+      apt install -y cmake libsdl2-dev
 
 checkout:
   post:

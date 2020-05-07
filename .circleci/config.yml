@@ -25,7 +25,7 @@ jobs:
     resource_class: small
     steps:
       - checkout
-      - *step-build
+      - *step-install-deps
       - *step-test
 
 workflows:

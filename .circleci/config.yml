@@ -4,18 +4,23 @@ step-install-deps: &step-install-deps
   run:
     name: Install project dependencies
     command: |
-      exit 1
+      apt update
+      apt install cmake libsdl2-dev
 
-#libsdl2-dev cmake libgtest-dev
-#sudo cp -a libgtest_main.so libgtest.so /usr/lib/
-#mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build . && cmake --build . && ./Chip8_tests
-#libsdl2-dev cmake libgtest-dev
+checkout:
+  post:
+    - git submodule init
+    - git submodule update
 
 step-test: &step-test
   run:
     name: Perform tests
     command: |
-      exit 1
+      mkdir build
+      cd build
+      cmake -DCMAKE_BUILD_TYPE=Debug ..
+      cmake --build .
+      ./Chip8_tests
 
 version: 2
 jobs:

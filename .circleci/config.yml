@@ -2,8 +2,9 @@
 # version: 2.1
 parameters:
   docker_image:
+    description: "Sample desc"
+    default: "hello world"
     type: string
-    default: 'hello world'
 
 step-install-deps: &step-install-deps
   run:
@@ -27,7 +28,7 @@ step-test: &step-test
       cd build
       cmake -DCMAKE_BUILD_TYPE=Debug ..
       cmake --build .
-      echo "ASDF" << parameters.docker_image >>
+      echo "ASDF" "<< parameters.docker_image >>"
       ./Chip8_tests
 
 version: 2

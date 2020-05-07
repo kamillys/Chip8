@@ -40,7 +40,7 @@ jobs:
       - checkout
       - *step-install-deps
       - *step-test
-      - run: echo "TEST" "<< >>"
+      - run: echo "TEST" "<< parameters.docker_image >>"
 
 workflows:
   build-linux:

@@ -156,5 +156,4 @@ int main(int argc, char **argv) {
   main_loop(argv[1]);
   SDL_Quit();
   return 0;
-  // Random comment
 }
